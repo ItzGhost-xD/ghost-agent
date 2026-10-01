@@ -28,7 +28,7 @@ electricity. Model quality and speed depend on the model and your hardware.
 
 The full instructions—including downloading the project from Replit, installing
 Ollama, preparing Python, setting the local access token, and troubleshooting—
-are in **[DUIDE.md](DUIDE.md)**.
+are in **[GUIDE.md](GUIDE.md)**.
 
 In brief:
 
