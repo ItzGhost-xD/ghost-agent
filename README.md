@@ -1,74 +1,125 @@
 # Ghost Agent
 
-Ghost Agent is a small coding assistant that uses an Ollama model you run and
-control. It can list, read, create, and replace UTF-8 text files in its
-workspace. It does not run shell commands, install packages, delete files, or
-access paths outside that workspace.
+**A small, local-first coding assistant powered by Ollama.**
 
-No hosted model API is built in, so Ghost Agent does not consume hosted model
-credits. Local inference still uses your computer's CPU/GPU, memory, storage,
-and electricity, and model quality depends on the model and hardware.
+Ghost Agent is a FastAPI application with a browser-based chat interface. It
+connects to an Ollama model running on the same computer, then lets the model
+inspect and edit text files in a configured workspace.
 
-## Run locally with Ollama
+It does not use a hosted model API, so it does not consume hosted API credits.  
+Local inference still uses your computer's processor, memory, storage, and
+electricity. Model quality and speed depend on the model and your hardware.
 
-Run Ollama on the same computer as Ghost Agent. Install a coding model once:
+> **Status:** Early MVP. Ghost Agent can list, read, create, and replace
+> workspace files. It does not run shell commands, install packages, delete
+> files, or execute generated code.
 
-```sh
-ollama pull qwen2.5-coder:7b
-```
+## Highlights
 
-Install Python requirements and create a private local environment file:
+- Ollama-compatible local model connection
+- Tool-calling agent loop for workspace file operations
+- Simple browser chat and file browser
+- Workspace path checks and file-size limits
+- Credential and private-key file access blocked
+- Bearer-token protection for file and chat APIs
+- Unit and API tests
 
-```sh
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-cp .env.example .env
-```
+## Quick start
 
-Replace `GHOST_AGENT_API_KEY` in `.env` with a long, randomly generated value.
-For example, generate one locally with:
+The full instructions—including downloading the project from Replit, installing
+Ollama, preparing Python, setting the local access token, and troubleshooting—
+are in **[DUIDE.md](DUIDE.md)**.
 
-```sh
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
+In brief:
 
-Keep `.env` private; it is excluded from Git. Then start the server on the local
-machine only:
+1. Install Ollama and Python 3.11 or newer.
+2. Download and extract this project.
+3. Pull the default model:
 
-```sh
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
+   ```sh
+   ollama pull qwen2.5-coder:7b
+   ```
 
-Open <http://127.0.0.1:8000>, enter the API access token, and chat. The browser
-keeps that token for the current tab session only.
+4. Create a virtual environment, install requirements, and copy
+   `.env.example` to `.env`.
+5. Put a private random value of at least 32 characters in
+   `GHOST_AGENT_API_KEY` in `.env`.
+6. Start the app on the same computer as Ollama:
 
-By default, Ghost Agent can only see files under `./workspace`. Put the project
-you want it to edit there, or set `GHOST_WORKSPACE` in `.env` to another
-directory. Keep the workspace as narrow as practical.
+   ```sh
+   python -m uvicorn main:app --host 127.0.0.1 --port 8000
+   ```
 
-You can choose another model by changing `OLLAMA_MODEL`. Set `OLLAMA_BASE_URL`
-if Ollama listens on a different address. The server must be able to reach
-that address.
+7. Open <http://127.0.0.1:8000> and enter that access token.
 
-## Replit
+## Configuration
 
-The Replit server runs on a different computer from yours. Its
-`127.0.0.1:11434` is the Replit environment, not Ollama on your personal
-computer. To use the local model with Replit's preview, you would need to
-configure a secure, authenticated network path to Ollama. Do not expose the
-Ollama port directly to the public internet. The simpler private setup is to
-run both Ollama and Ghost Agent locally on your computer.
+Copy `.env.example` to `.env` and edit the values:
 
-For a Replit preview, add `GHOST_AGENT_API_KEY` as a Replit Secret before using
-the file or chat APIs. Set `OLLAMA_BASE_URL` only to an Ollama endpoint that
-the Replit server can securely reach. API routes fail closed when the access
-token is not configured.
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `GHOST_AGENT_API_KEY` | Protects chat and workspace APIs. Use a private random value at least 32 characters long. | Required |
+| `GHOST_WORKSPACE` | Directory the agent may inspect and edit. | `./workspace` |
+| `OLLAMA_BASE_URL` | Ollama server address reachable from Ghost Agent. | `http://127.0.0.1:11434` |
+| `OLLAMA_MODEL` | Model tag already downloaded in Ollama. | `qwen2.5-coder:7b` |
 
-## Checks
+By default, file operations stay in `./workspace`. Set `GHOST_WORKSPACE=.` only
+if you want the agent to work on the entire current project directory. Back up
+important files first; edits are applied directly, without an approval screen.
+The `.env` file is excluded from Git and blocked from workspace file operations.
+
+## API
+
+The interactive API reference is available at <http://127.0.0.1:8000/docs>.
+
+| Route | Purpose | Authentication |
+| --- | --- | --- |
+| `GET /health` | Check server and model configuration | None |
+| `GET /files` | List workspace files | Bearer token |
+| `POST /read` | Read a workspace text file | Bearer token |
+| `POST /write` | Create or replace a workspace text file | Bearer token |
+| `POST /api/chat` | Send a message to the coding agent | Bearer token |
+
+## Development
+
+Run tests from the project root:
 
 ```sh
 python -m pytest
 ```
 
-The interactive API documentation is available at `/docs`.
+## Security and limitations
+
+- Keep Ghost Agent and Ollama on your own computer for the simplest private
+  setup.
+- The server binds to `127.0.0.1` in the local run command so it is not exposed
+  to your network by default.
+- Do not expose Ollama's port `11434` directly to the public internet.
+- Replit runs on a different computer from yours. Replit's
+  `127.0.0.1:11434` is not your computer's Ollama server. Connecting the Replit
+  preview to local Ollama requires a separate secure, authenticated network
+  path.
+- The agent can edit only its configured workspace, but writes happen
+  immediately. Review important changes and keep backups.
+- Local use avoids hosted model API credits; it does not remove hardware,
+  storage, electricity, model-license, or other usage constraints.
+
+## Project layout
+
+```text
+agent/                 Workspace tools, Ollama client, and agent loop
+static/index.html      Browser chat and workspace file browser
+tests/                 Unit and API tests
+workspace/             Default directory available to the agent
+main.py                FastAPI application
+requirements.txt       Python dependencies
+.env.example           Local configuration template
+DUIDE.md               Detailed setup and operating guide
+```
+
+## References
+
+- [Ollama downloads](https://ollama.com/download)
+- [Ollama model library: Qwen 2.5 Coder](https://ollama.com/library/qwen2.5-coder)
+- [Replit project and file help](https://docs.replit.com/help/projects-and-files)
+- [Python downloads](https://www.python.org/downloads/)

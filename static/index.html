@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131b">
+  <link rel="icon" href="data:,">
+  <title>Ghost Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #10131b;
+      color: #e8ebf2;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --muted: #8c93a5;
+      --line: #252a37;
+      --panel: #171b25;
+      --accent: #aaa0ff;
+      --green: #7ed6a5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    aside { border-right: 1px solid var(--line); padding: 22px 16px; background: #131620; }
+    .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 26px; }
+    .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: #292744; color: #c7c1ff; font-size: 17px; font-weight: 800; }
+    .brand strong { display: block; font-size: 15px; letter-spacing: .01em; }
+    .brand span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .section-label { color: #777e90; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; margin: 22px 7px 10px; }
+    .status-card { border: 1px solid var(--line); background: var(--panel); padding: 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; }
+    .status-top { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 6px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #e6a75c; box-shadow: 0 0 10px #e6a75c55; }
+    .dot.ok { background: var(--green); box-shadow: 0 0 10px #7ed6a555; }
+    .status-card p { margin: 0; color: var(--muted); }
+    .token-form { display: flex; gap: 6px; margin-top: 11px; }
+    .key-input { min-width: 0; flex: 1; padding: 9px 10px; background: #10131b; border: 1px solid #303646; color: #e8ebf2; border-radius: 8px; outline: none; font-size: 12px; }
+    .key-input:focus, textarea:focus { border-color: #8278de; box-shadow: 0 0 0 3px #8278de20; }
+    .save-token { border: 1px solid #303646; border-radius: 8px; color: #c3c7d2; background: #202432; padding: 0 9px; font-size: 11px; }
+    .file-list { display: grid; gap: 3px; max-height: 40vh; overflow: auto; }
+    .file-button { border: 0; background: transparent; color: #aeb4c3; text-align: left; padding: 7px 8px; border-radius: 7px; font-size: 12px; overflow-wrap: anywhere; }
+    .file-button:hover { background: #202432; color: #fff; }
+    .file-empty { color: var(--muted); font-size: 12px; padding: 4px 8px; }
+    .main { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+    header { height: 66px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+    header h1 { margin: 0; font-size: 14px; font-weight: 650; }
+    .model-badge { color: #b8b1ff; background: #25233b; border: 1px solid #383451; border-radius: 100px; padding: 6px 10px; font-size: 11px; }
+    .conversation { flex: 1; width: min(850px, 100%); padding: 36px 24px 18px; margin: 0 auto; }
+    .welcome { text-align: center; padding: 55px 16px 42px; }
+    .welcome-mark { font-size: 30px; color: var(--accent); }
+    .welcome h2 { margin: 15px 0 9px; font-size: 25px; letter-spacing: -.03em; }
+    .welcome p { color: var(--muted); max-width: 490px; margin: 0 auto; font-size: 13px; line-height: 1.65; }
+    .messages { display: grid; gap: 18px; }
+    .message { max-width: 88%; border-radius: 14px; padding: 13px 15px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message.user { justify-self: end; background: #292744; color: #f0efff; border: 1px solid #3b385d; }
+    .message.agent { justify-self: start; background: var(--panel); border: 1px solid var(--line); }
+    .message.error { color: #ffb2b2; border-color: #573333; }
+    .action { color: var(--green); font-size: 11px; margin-top: 8px; }
+    .composer-wrap { width: min(850px, 100%); padding: 0 24px 22px; margin: auto; }
+    .composer { border: 1px solid #33394a; border-radius: 15px; background: #171b25; padding: 12px 12px 9px; box-shadow: 0 12px 40px #0003; }
+    textarea { resize: vertical; min-height: 72px; max-height: 220px; width: 100%; border: 0; outline: 0; background: transparent; color: #eef0f5; padding: 5px 4px; font-size: 13px; line-height: 1.5; }
+    .composer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 2px 0; }
+    .hint { font-size: 10px; color: #777e90; }
+    .send { border: 0; border-radius: 9px; padding: 8px 13px; background: #a9a0ff; color: #151421; font-weight: 700; font-size: 12px; }
+    .send:hover { background: #c0baff; }
+    .send:disabled { opacity: .5; cursor: wait; }
+    .footnote { text-align: center; color: #71788a; font-size: 10px; margin-top: 11px; }
+    dialog { width: min(800px, calc(100vw - 28px)); max-height: 85vh; border: 1px solid #383e4e; border-radius: 14px; background: #151923; color: #e8ebf2; padding: 0; }
+    dialog::backdrop { background: #05070bbd; backdrop-filter: blur(4px); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 17px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .dialog-head button { color: #aeb4c3; border: 0; background: transparent; }
+    pre { padding: 18px; margin: 0; overflow: auto; max-height: calc(85vh - 48px); white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    @media (max-width: 720px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; }
+      .brand { margin-bottom: 12px; }
+      .section-label { margin-top: 13px; }
+      .file-list { display: flex; overflow: auto; max-height: 70px; }
+      .file-button { min-width: max-content; }
+      header { padding: 0 17px; }
+      .conversation { padding: 15px 14px; }
+      .welcome { padding: 34px 10px 27px; }
+      .composer-wrap { padding: 0 12px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <div class="mark">G</div>
+        <div><strong>Ghost Agent</strong><span>Local-model coding assistant</span></div>
+      </div>
+      <div class="section-label">Connection</div>
+      <div class="status-card">
+        <div class="status-top"><span class="dot" id="status-dot"></span><span id="status-title">Checking server…</span></div>
+        <p id="status-copy">Uses Ollama; no hosted model API is built in.</p>
+        <form class="token-form" id="token-form" autocomplete="off">
+          <input class="key-input" id="token" type="password" autocomplete="off" placeholder="API access token">
+          <button class="save-token" type="submit">Save</button>
+        </form>
+      </div>
+      <div class="section-label">Workspace files</div>
+      <div class="file-list" id="files"><div class="file-empty">Enter your access token to load files.</div></div>
+    </aside>
+    <main class="main">
+      <header><h1>New coding session</h1><span class="model-badge" id="model-badge">Ollama</span></header>
+      <section class="conversation">
+        <div class="welcome" id="welcome">
+          <div class="welcome-mark">✳</div>
+          <h2>What are we building?</h2>
+          <p>Describe the change you want. Ghost Agent can inspect, create, and edit text files inside its workspace. It does not run shell commands.</p>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+      </section>
+      <div class="composer-wrap">
+        <form class="composer" id="chat-form">
+          <textarea id="prompt" placeholder="Ask Ghost Agent to build or change something…" required maxlength="12000"></textarea>
+          <div class="composer-bottom"><span class="hint">Enter to send · Shift+Enter for a new line</span><button class="send" id="send" type="submit">Send</button></div>
+        </form>
+        <div class="footnote">Review generated changes before using them in important projects.</div>
+      </div>
+    </main>
+  </div>
+  <dialog id="file-dialog"><div class="dialog-head"><strong id="file-title"></strong><button id="close-dialog" type="button">Close</button></div><pre id="file-content"></pre></dialog>
+  <script>
+    const tokenInput = document.getElementById("token");
+    const messages = document.getElementById("messages");
+    const promptInput = document.getElementById("prompt");
+    const sendButton = document.getElementById("send");
+    const fileList = document.getElementById("files");
+    const dialog = document.getElementById("file-dialog");
+    let conversationId = null;
+    tokenInput.value = sessionStorage.getItem("ghost-agent-token") || "";
+
+    function headers() {
+      return { "Content-Type": "application/json", "Authorization": `Bearer ${tokenInput.value.trim()}` };
+    }
+    async function api(path, options = {}) {
+      const response = await fetch(path, { ...options, headers: { ...headers(), ...(options.headers || {}) } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+      return data;
+    }
+    function addMessage(text, role, actions = []) {
+      document.getElementById("welcome").hidden = true;
+      const item = document.createElement("div");
+      item.className = `message ${role}`;
+      item.textContent = text;
+      for (const action of actions) {
+        const row = document.createElement("div");
+        row.className = "action";
+        row.textContent = action.error ? `${action.tool}: ${action.error}` : `${action.tool}${action.path ? ` · ${action.path}` : ""}`;
+        item.appendChild(row);
+      }
+      messages.appendChild(item);
+      item.scrollIntoView({ behavior: "smooth", block: "end" });
+      return item;
+    }
+    async function refreshFiles() {
+      if (!tokenInput.value.trim()) {
+        fileList.innerHTML = '<div class="file-empty">Enter your access token to load files.</div>';
+        return;
+      }
+      fileList.replaceChildren();
+      try {
+        const result = await api("/files");
+        if (!result.files.length) {
+          fileList.innerHTML = '<div class="file-empty">No files in the workspace yet.</div>';
+          return;
+        }
+        for (const path of result.files) {
+          const button = document.createElement("button");
+          button.className = "file-button";
+          button.textContent = path;
+          button.type = "button";
+          button.addEventListener("click", async () => {
+            try {
+              const result = await api("/read", { method: "POST", body: JSON.stringify({ path }) });
+              document.getElementById("file-title").textContent = result.path;
+              document.getElementById("file-content").textContent = result.content;
+              dialog.showModal();
+            } catch (error) { addMessage(error.message, "agent error"); }
+          });
+          fileList.appendChild(button);
+        }
+      } catch (error) {
+        fileList.innerHTML = `<div class="file-empty">${tokenInput.value ? "Could not load files." : "Enter your access token to load files."}</div>`;
+      }
+    }
+    async function refreshStatus() {
+      try {
+        const result = await fetch("/health").then(response => response.json());
+        document.getElementById("model-badge").textContent = result.model;
+        document.getElementById("status-dot").classList.toggle("ok", result.api_key_configured);
+        document.getElementById("status-title").textContent = result.api_key_configured ? "Server ready" : "Access token required";
+        document.getElementById("status-copy").textContent = result.api_key_configured
+          ? "Add the configured token below. Ollama must be reachable by the server."
+          : "Set the GHOST_AGENT_API_KEY secret in Replit, then enter that token here.";
+      } catch {
+        document.getElementById("status-title").textContent = "Server unavailable";
+      }
+    }
+    function saveToken() {
+      sessionStorage.setItem("ghost-agent-token", tokenInput.value.trim());
+      refreshFiles();
+    }
+    tokenInput.addEventListener("change", saveToken);
+    document.getElementById("token-form").addEventListener("submit", event => {
+      event.preventDefault();
+      saveToken();
+    });
+    document.getElementById("chat-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const text = promptInput.value.trim();
+      if (!text || sendButton.disabled) return;
+      addMessage(text, "user");
+      promptInput.value = "";
+      sendButton.disabled = true;
+      sendButton.textContent = "Working…";
+      const pending = addMessage("Thinking and checking workspace files…", "agent");
+      try {
+        const result = await api("/api/chat", {
+          method: "POST",
+          body: JSON.stringify({ message: text, conversation_id: conversationId })
+        });
+        conversationId = result.conversation_id;
+        pending.remove();
+        addMessage(result.reply || "The model returned an empty reply.", "agent", result.actions);
+        if (result.actions.some(action => action.tool === "write_file" && action.success)) refreshFiles();
+      } catch (error) {
+        pending.remove();
+        addMessage(error.message, "agent error");
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = "Send";
+        promptInput.focus();
+      }
+    });
+    promptInput.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById("chat-form").requestSubmit();
+      }
+    });
+    document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
+    refreshStatus();
+    refreshFiles();
+  </script>
+</body>
+</html>
